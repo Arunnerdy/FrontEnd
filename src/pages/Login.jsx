@@ -1,15 +1,33 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import axios from 'axios';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleLogin = async (e) => {
+  const handleLogin = (e) => {
     e.preventDefault();
-    // Call your backend API here
-    console.log({ email, password });
+
+    axios.post('http://localhost:8080/api/login', {
+      email,
+      password
+    })
+    .then((res) => {
+      alert(res.data); 
+      // Redirect to dashboard or home
+      
+    })
+    .catch((error) => {
+      if (error.response) {
+        // Backend returned 401 with message
+        alert(error.response.data); // "Invalid email" or "Invalid password"
+      } else {
+        alert('An error occurred. Please try again.');
+      }
+      console.error('Login error:', error);
+    });
   };
 
   return (
