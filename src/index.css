@@ -1,0 +1,100 @@
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans",
+    "Droid Sans", "Helvetica Neue", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #f8f9fa;
+}
+
+.navbar-brand {
+  font-weight: bold;
+  color: white;
+}
+
+.btn1:hover{
+  background-color: none;
+}
+
+.card {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: none;
+  margin-bottom: 20px;
+}
+
+.bg1-primary {
+  --bs-bg-opacity: 1;
+  background-color: black;
+   
+}
+
+.btn-primary{
+  --bs-btn-hover-bg: black !important;
+}
+
+.btn1-outline-primary {
+    --bs-btn-color: black;
+    --bs-btn-border-color: black;
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: black;
+    --bs-btn-hover-border-color: black;
+    --bs-btn-focus-shadow-rgb: 13, 110, 253;
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: black;
+    --bs-btn-active-border-color: black;
+    --bs-btn-active-shadow: inset 0 3px 5px rgba(0, 0, 0, 0.125);
+    --bs-btn-disabled-color: black;
+    --bs-btn-disabled-bg: transparent;
+    --bs-btn-disabled-border-color: black;
+    --bs-gradient: none;
+}
+
+.btn-primary {
+  background-color: black;
+  border-color: black;
+}
+
+.task-card {
+  border-left: 4px solid black;
+  margin-bottom: 10px;
+}
+
+.task-card.in-progress {
+  border-left-color: #ffc107;
+}
+
+.task-card.done {
+  border-left-color: #28a745;
+}
+
+.priority-high {
+  color: #dc3545;
+  font-weight: bold;
+}
+
+.priority-medium {
+  color: #ffc107;
+  font-weight: bold;
+}
+
+.priority-low {
+  color: #28a745;
+  font-weight: bold;
+}
+
+.loading {
+  text-align: center;
+  padding: 50px;
+}
+
+.txt_color{
+  color: rgb(255, 255, 255);
+  font-weight: bold;
+}
+
+.myhover:hover{
+  color: rgb(199, 197, 197);
+  transform: scale(1.05);
+  transition: width 0.3s ease;
+}
+
