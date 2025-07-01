@@ -25,12 +25,17 @@ const Navbar = () => {
               <ul className="navbar-nav me-auto">
                 <li className="nav-item">
                   <Link className="nav-link txt_color myhover" to="/">
-                    Dashboard
+                    Project Manager-Dashboard
                   </Link>
                 </li>
                 <li className="nav-item">
                   <Link className="nav-link txt_color myhover" to="/projects">
-                    Projects
+                    Admin-Dashboard
+                  </Link>
+                </li>
+                <li className="nav-item">
+                  <Link className="nav-link txt_color myhover" to="/team-member-dashboard">
+                    Team-Member-Dashboard
                   </Link>
                 </li>
               </ul>

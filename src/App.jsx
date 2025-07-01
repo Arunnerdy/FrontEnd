@@ -4,9 +4,12 @@ import Navbar from "./components/Navbar"
 // import Login from "./pages/Login"
 // import Register from "./pages/Register"
 import Dashboard from "./pages/Dashboard"
-import Projects from "./pages/Projects"
+// import Projects from "./pages/Projects"
 import ProjectDetail from "./pages/ProjectDetail"
 import CreateProject from "./pages/CreateProject"
+import CreateTask from "./pages/CreateTask"
+import AdminDashboard from "./pages/AdminDashboard"
+import TeamMemberDashboard from "./pages/TeamMemberDashboard"
 // import ProtectedRoute from "./components/ProtectedRoute"
 
 function App() {
@@ -31,7 +34,7 @@ function App() {
                 path="/projects"
                 element={
                   
-                    <Projects />
+                    <AdminDashboard />
                   
                 }
               />
@@ -51,7 +54,24 @@ function App() {
                  
                 }
               />
+              <Route
+                path="/create-task"
+                element={
+                  
+                    <CreateTask />
+                 
+                }
+              />
+              <Route
+                path="/team-member-dashboard"
+                element={
+                  
+                    <TeamMemberDashboard />
+                 
+                }
+              />
             </Routes>
+            
           </div>
         </div>
       </Router>

@@ -52,3 +52,4 @@ export default function TaskCard({ task, onToggle }) {
     </div>
   );
 }
+
