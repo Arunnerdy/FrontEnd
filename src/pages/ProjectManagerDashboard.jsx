@@ -91,7 +91,7 @@ const Dashboard = () => {
     <div>
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h1>Welcome back, Manoj C !</h1>
-        <Link to="/create-task" className="btn btn-primary">
+        <Link to="/create-task" className="btn btn-secondary btn-black-white">
           Create New Task
         </Link>
       </div>

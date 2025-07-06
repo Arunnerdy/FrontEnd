@@ -112,7 +112,7 @@ const Projects = () => {
     <div>
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h1>Projects</h1>
-        <Link to="/projects/create" className="btn btn-primary">
+        <Link to="/projects/create" className="btn btn-secondary btn-black-white">
           Create New Project
         </Link>
       </div>

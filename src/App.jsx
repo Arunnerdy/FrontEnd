@@ -10,6 +10,7 @@ import CreateProject from "./pages/CreateProject"
 import CreateTask from "./pages/CreateTask"
 import AdminDashboard from "./pages/AdminDashboard"
 import TeamMemberDashboard from "./pages/TeamMemberDashboard"
+import EditUserInfo from "./pages/EditUserInfo";
 // import ProtectedRoute from "./components/ProtectedRoute"
 
 function App() {
@@ -70,6 +71,12 @@ function App() {
                  
                 }
               />
+            <Route 
+              path="/edit-user-info" 
+              element={
+                <EditUserInfo />
+              } 
+            />
             </Routes>
             
           </div>

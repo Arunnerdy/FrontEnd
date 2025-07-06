@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Modal, Button } from "react-bootstrap";  
 
 export default function CreateTask() {
-  
+  const navigate = useNavigate();
 
   const [form, setForm] = useState({
     title: "",
@@ -12,6 +13,8 @@ export default function CreateTask() {
     assigneeName: "",
     assigneeEmail: "",
   });
+
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -29,6 +32,21 @@ export default function CreateTask() {
     // TODO: navigate away or show toast
     // navigate("/dashboard/project‑manager");
     console.log("Task to create:", form);
+    setShowSuccessModal(true);
+  };
+
+  const handleModalClose = () => {
+    setShowSuccessModal(false);
+
+    // Reset form
+    setForm({
+      title: "",
+      description: "",
+      dueDate: "",
+      urgency: "immediate",
+      assigneeName: "",
+      assigneeEmail: "",
+    });
   };
 
   return (
@@ -138,10 +156,27 @@ export default function CreateTask() {
 
         {/* Submit */}
         <div className="d-grid">
-          <button type="submit" className="btn btn-dark btn-lg text-white">
+          <button type="submit" className="btn btn-dark btn-lg btn-black-white">
             Create Task
           </button>
+          <br />
+          <button type="button" className="btn btn-dark btn-lg btn-black-white" onClick={() => navigate("/")}>
+            Cancel
+          </button>
         </div>
+
+        {/* Success Modal */}
+        <Modal show={showSuccessModal} onHide={handleModalClose} centered>
+          <Modal.Header closeButton>
+            <Modal.Title>🎉 Task Created</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>Your task has been created successfully!</Modal.Body>
+          <Modal.Footer>
+            <Button variant="dark" onClick={handleModalClose}>
+              Close
+            </Button>
+          </Modal.Footer>
+        </Modal>
       </form>
     </div>
   );

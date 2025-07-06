@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
+import { Modal, Button } from "react-bootstrap";  
 
 const CreateProject = () => {
   const [formData, setFormData] = useState({
@@ -14,6 +15,7 @@ const CreateProject = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const navigate = useNavigate()
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const handleChange = (e) => {
     setFormData({
@@ -46,18 +48,35 @@ const CreateProject = () => {
       setError("")
       setLoading(true)
 
-      // Mock API call - in real app, this would call the backend
-      console.log("Creating project:", formData)
-
       // Simulate API delay
       await new Promise((resolve) => setTimeout(resolve, 1000))
 
-      navigate("/projects")
+      // Mock API call - in real app, this would call the backend
+      console.log("Creating project:", formData)
+
+      setShowSuccessModal(true)
+
+      // Reset form
+      setFormData({
+        name: "",
+        description: "",
+        startDate: "",
+        endDate: "",
+        status: "Planning",
+        manager: "",
+        managerEmail: "",
+      })
+      
     } catch (error) {
       setError("Failed to create project")
     }
     setLoading(false)
   }
+
+  const handleModalClose = () => {
+    setShowSuccessModal(false);
+
+  };
 
   return (
     <div className="row justify-content-center">
@@ -189,17 +208,30 @@ const CreateProject = () => {
               </div>
 
               <div className="d-flex gap-2">
-                <button type="submit" className="btn btn-primary" disabled={loading}>
+                <button type="submit" className="btn btn-dark btn-black-white" disabled={loading}>
                   {loading ? "Creating..." : "Create Project"}
                 </button>
-                <button type="button" className="btn btn-secondary" onClick={() => navigate("/projects")}>
+                <button type="button" className="btn btn-secondary btn-black-white" onClick={() => navigate("/projects")}>
                   Cancel
                 </button>
-              </div>
+              </div>  
             </form>
           </div>
         </div>
       </div>
+
+      {/* Success Modal */}
+      <Modal show={showSuccessModal} onHide={handleModalClose} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>✅ Project Created</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>Your project has been created successfully!</Modal.Body>
+        <Modal.Footer>
+          <Button variant="dark" onClick={handleModalClose}>
+            Close
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   )
 }
