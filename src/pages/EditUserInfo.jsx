@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Modal, Button } from "react-bootstrap";
+import { useNavigate } from "react-router-dom";
 
 const dummyUserData = {
   name: "Manoj C",
@@ -17,6 +18,7 @@ export default function EditUserInfo() {
   });
 
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Simulate data fetching from a JS object
@@ -63,7 +65,7 @@ export default function EditUserInfo() {
             type="date"
             name="dob"
             className="form-control"
-            value={user.dob}
+            value={user.DOB}
             onChange={handleChange}
           />
         </div>
@@ -71,6 +73,11 @@ export default function EditUserInfo() {
           <button type="submit" className="btn btn-lg btn-black-white">
             Update
           </button>
+          <br />
+          <button type="button" className="btn btn-dark btn-lg btn-black-white" onClick={() => navigate("/")}>
+            Cancel
+          </button>
+          <br />
         </div>
       </form>
 
