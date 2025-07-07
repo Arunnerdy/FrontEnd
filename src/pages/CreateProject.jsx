@@ -1,5 +1,6 @@
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
+import axios from "axios"
 
 const CreateProject = () => {
   const [formData, setFormData] = useState({
@@ -11,6 +12,7 @@ const CreateProject = () => {
     manager: "",
     managerEmail: "",
   })
+
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const navigate = useNavigate()
@@ -25,6 +27,7 @@ const CreateProject = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
 
+    // ✅ Basic validation
     if (
       !formData.name ||
       !formData.description ||
@@ -46,17 +49,44 @@ const CreateProject = () => {
       setError("")
       setLoading(true)
 
-      // Mock API call - in real app, this would call the backend
-      console.log("Creating project:", formData)
+      const token = localStorage.getItem("token")
 
-      // Simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      // ✅ Create payload with nested manager object
+      const payload = {
+        name: formData.name,
+        description: formData.description,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        status: formData.status,
+        manager: {
+          name: formData.manager,
+          email: formData.managerEmail
+        }
+      }
 
+      const res = await axios.post(
+        "http://localhost:8080/api/projects",
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json"
+          }
+        }
+      )
+
+      console.log("✅ Project created:", res.data)
       navigate("/projects")
     } catch (error) {
-      setError("Failed to create project")
+      if (error.response) {
+        setError(error.response.data.message || "Failed to create project")
+      } else {
+        setError("An error occurred. Please try again.")
+      }
+      console.error("Project creation error:", error)
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   return (
@@ -70,9 +100,7 @@ const CreateProject = () => {
 
             <form onSubmit={handleSubmit}>
               <div className="mb-3">
-                <label htmlFor="name" className="form-label">
-                  Project Name *
-                </label>
+                <label htmlFor="name" className="form-label">Project Name *</label>
                 <input
                   type="text"
                   className="form-control"
@@ -85,9 +113,7 @@ const CreateProject = () => {
               </div>
 
               <div className="mb-3">
-                <label htmlFor="description" className="form-label">
-                  Description *
-                </label>
+                <label htmlFor="description" className="form-label">Description *</label>
                 <textarea
                   className="form-control"
                   id="description"
@@ -102,9 +128,7 @@ const CreateProject = () => {
               <div className="row">
                 <div className="col-md-6">
                   <div className="mb-3">
-                    <label htmlFor="startDate" className="form-label">
-                      Start Date *
-                    </label>
+                    <label htmlFor="startDate" className="form-label">Start Date *</label>
                     <input
                       type="date"
                       className="form-control"
@@ -118,9 +142,7 @@ const CreateProject = () => {
                 </div>
                 <div className="col-md-6">
                   <div className="mb-3">
-                    <label htmlFor="endDate" className="form-label">
-                      End Date *
-                    </label>
+                    <label htmlFor="endDate" className="form-label">End Date *</label>
                     <input
                       type="date"
                       className="form-control"
@@ -135,9 +157,7 @@ const CreateProject = () => {
               </div>
 
               <div className="mb-3">
-                <label htmlFor="status" className="form-label">
-                  Status
-                </label>
+                <label htmlFor="status" className="form-label">Status</label>
                 <select
                   className="form-select"
                   id="status"
@@ -154,9 +174,7 @@ const CreateProject = () => {
               <div className="row">
                 <div className="col-md-6">
                   <div className="mb-3">
-                    <label htmlFor="manager" className="form-label">
-                      Project Manager *
-                    </label>
+                    <label htmlFor="manager" className="form-label">Project Manager Name *</label>
                     <input
                       type="text"
                       className="form-control"
@@ -171,9 +189,7 @@ const CreateProject = () => {
                 </div>
                 <div className="col-md-6">
                   <div className="mb-3">
-                    <label htmlFor="managerEmail" className="form-label">
-                      Manager Email *
-                    </label>
+                    <label htmlFor="managerEmail" className="form-label">Manager Email *</label>
                     <input
                       type="email"
                       className="form-control"

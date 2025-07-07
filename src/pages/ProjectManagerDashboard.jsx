@@ -1,86 +1,43 @@
-
 import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
-// import { useAuth } from "../context/AuthContext"
+import axios from "axios"
 
 const Dashboard = () => {
-  // const { currentUser } = useAuth()
   const [projects, setProjects] = useState([])
-  const [tasks, setTasks] = useState([])
+  const [tasks, setTasks] = useState([]) // You can later fetch tasks assigned to the user
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Mock data - in real app, this would fetch from API
-    const mockProjects = [
-      {
-        id: 1,
-        name: "Website Redesign",
-        status: "In Progress",
-        dueDate: "2024-02-15",
-        tasksCount: 2,
-      },
-      {
-        id: 2,
-        name: "Mobile App Development",
-        status: "Planning",
-        dueDate: "2024-03-20",
-        tasksCount: 1,
-      },
-      {
-        id: 3,
-        name: "Database Migration",
-        status: "Completed",
-        dueDate: "2023-12-15",
-        tasksCount: 1,
-      },
-      {
-        id: 4,
-        name: "UI Revamp",
-        status: "In Progress",
-        dueDate: "2024-03-05",
-        tasksCount: 1,
-      },
-      {
-        id: 5,
-        name: "Security Audit",
-        status: "Completed",
-        dueDate: "2024-04-30",
-        tasksCount: 1,
-      },
-    ]
+    const fetchProjects = async () => {
+      try {
+        const token = localStorage.getItem("token")
 
-    const mockTasks = [
-      {
-        id: 1,
-        title: "Design Homepage",
-        project: "Website Redesign",
-        priority: "High",
-        dueDate: "2024-01-25",
-        status: "In Progress",
-      },
-      {
-        id: 2,
-        title: "Setup Database",
-        project: "Mobile App Development",
-        priority: "Medium",
-        dueDate: "2024-01-30",
-        status: "To Do",
-      },
-      {
-        id: 3,
-        title: "User Authentication",
-        project: "Mobile App Development",
-        priority: "High",
-        dueDate: "2024-02-05",
-        status: "In Progress",
+        const res = await axios.get("http://localhost:8080/api/projects/my-projects", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+
+        const userProjects = res.data
+
+        // Optional: Format projects to match mock structure
+        const formattedProjects = userProjects.map((proj) => ({
+          id: proj.id,
+          name: proj.name,
+          status: proj.status,
+          dueDate: proj.endDate,
+          tasksCount: 0, // Replace with actual count when task data is integrated
+        }))
+
+        setProjects(formattedProjects)
+      } catch (error) {
+        console.error("Failed to fetch projects for user:", error)
+      } finally {
+        setLoading(false)
       }
-    ]
+    }
 
-    setTimeout(() => {
-      setProjects(mockProjects)
-      setTasks(mockTasks)
-      setLoading(false)
-    }, 1000)
+    fetchProjects()
   }, [])
 
   if (loading) {
@@ -90,7 +47,7 @@ const Dashboard = () => {
   return (
     <div>
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1>Welcome back, Manoj C !</h1>
+        <h1>Welcome back!</h1>
         <Link to="/create-task" className="btn btn-primary">
           Create New Task
         </Link>
@@ -100,7 +57,7 @@ const Dashboard = () => {
         <div className="col-md-8">
           <div className="card">
             <div className="card-header">
-              <h5>Recent Projects</h5>
+              <h5>My Projects</h5>
             </div>
             <div className="card-body">
               {projects.length === 0 ? (
@@ -164,7 +121,7 @@ const Dashboard = () => {
               <div className="row text-center">
                 <div className="col-6">
                   <h3 className="text-primary">{projects.length}</h3>
-                  <p>Active Projects</p>
+                  <p>My Projects</p>
                 </div>
                 <div className="col-6">
                   <h3 className="text-success">{tasks.length}</h3>

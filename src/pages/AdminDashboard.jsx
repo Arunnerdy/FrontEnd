@@ -1,6 +1,6 @@
-
 import { useState, useEffect } from "react"
 import { Link } from "react-router-dom"
+import axios from "axios"
 
 const Projects = () => {
   const [projects, setProjects] = useState([])
@@ -9,81 +9,42 @@ const Projects = () => {
   const [statusFilter, setStatusFilter] = useState("All")
   const [loading, setLoading] = useState(true)
 
+  // ✅ Fetch projects from backend on mount
   useEffect(() => {
-    // Mock data - in real app, this would fetch from API
-    const mockProjects = [
-      {
-        id: 1,
-        name: "Website Redesign",
-        description: "Complete redesign of company website with modern UI/UX",
-        status: "In Progress",
-        startDate: "2024-01-01",
-        endDate: "2024-02-15",
-        manager: "Manoj C",
-        teamMembers: 5,
-      },
-      {
-        id: 2,
-        name: "Mobile App Development",
-        description: "Native mobile app for iOS and Android platforms",
-        status: "Planning",
-        startDate: "2024-02-01",
-        endDate: "2024-03-20",
-        manager: "Jane Smith",
-        teamMembers: 5,
-      },
-      {
-        id: 3,
-        name: "Database Migration",
-        description: "Migrate legacy database to new cloud infrastructure",
-        status: "Completed",
-        startDate: "2023-11-01",
-        endDate: "2023-12-15",
-        manager: "Mike Johnson",
-        teamMembers: 3,
-      },
-      {
-        id: 4,
-        name: "UI Revamp",
-        description: "Redesign the user interface for better UX",
-        status: "In Progress",
-        startDate: "2024-01-10",
-        endDate: "2024-03-05",
-        manager: "Sara Lee",
-        teamMembers: 5,
-      },
-      {
-        id: 5,
-        name: "Security Audit",
-        description: "Conduct a full security audit of the system",
-        status: "Completed",
-        startDate: "2024-04-01",
-        endDate: "2024-04-30",
-        manager: "David Kim",
-        teamMembers: 2,
-      },
-    ]
+    const fetchProjects = async () => {
+      try {
+        const token = localStorage.getItem("token")
+        const response = await axios.get("http://localhost:8080/api/projects", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
 
-    setTimeout(() => {
-      setProjects(mockProjects)
-      setFilteredProjects(mockProjects)
-      setLoading(false)
-    }, 1000)
+        const data = response.data
+        setProjects(data)
+        setFilteredProjects(data)
+      } catch (error) {
+        console.error("Failed to fetch projects:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchProjects()
   }, [])
 
+  // ✅ Filtering
   useEffect(() => {
     let filtered = projects
 
-    // Filter by search term
     if (searchTerm) {
       filtered = filtered.filter(
         (project) =>
           project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          project.description.toLowerCase().includes(searchTerm.toLowerCase()),
+          project.description.toLowerCase().includes(searchTerm.toLowerCase())
       )
     }
 
-    // Filter by status
     if (statusFilter !== "All") {
       filtered = filtered.filter((project) => project.status === statusFilter)
     }
@@ -128,7 +89,11 @@ const Projects = () => {
           />
         </div>
         <div className="col-md-4">
-          <select className="form-select" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+          <select
+            className="form-select"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
             <option value="All">All Status</option>
             <option value="Planning">Planning</option>
             <option value="In Progress">In Progress</option>
@@ -157,19 +122,20 @@ const Projects = () => {
                 <div className="card-body">
                   <div className="d-flex justify-content-between align-items-start mb-2">
                     <h5 className="card-title">{project.name}</h5>
-                    <span className={`badge ${getStatusBadgeClass(project.status)}`}>{project.status}</span>
+                    <span className={`badge ${getStatusBadgeClass(project.status)}`}>
+                      {project.status}
+                    </span>
                   </div>
                   <p className="card-text">{project.description}</p>
                   <div className="mb-2">
                     <small className="text-muted">
-                      <strong>Manager:</strong> {project.manager}
-                      <br />
-                      <strong>Team:</strong> {project.teamMembers} members
+                      <strong>Manager:</strong>{" "}
+                      {project.manager?.name} ({project.manager?.email})
                       <br />
                       <strong>Duration:</strong> {project.startDate} to {project.endDate}
                     </small>
                   </div>
-                  <Link to={`/projects/${project.id}`} className="btn btn1-outline-primary">
+                  <Link to={`/projects/${project.id}`} className="btn btn-outline-primary">
                     View Details
                   </Link>
                 </div>

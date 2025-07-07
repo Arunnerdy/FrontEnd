@@ -1,9 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 export default function CreateTask() {
-  
+  const navigate = useNavigate();
 
+  const [projects, setProjects] = useState([]);
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -11,39 +13,55 @@ export default function CreateTask() {
     urgency: "immediate",
     assigneeName: "",
     assigneeEmail: "",
+    projectId: "", // ✅ Project ID will be set via dropdown
   });
 
-  const handleChange = (e) =>
-    setForm({ ...form, [e.target.name]: e.target.value });
+  // ✅ Fetch user's projects on mount
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await axios.get("http://localhost:8080/api/projects/my-projects", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        setProjects(res.data);
+      } catch (err) {
+        console.error("Failed to fetch projects:", err);
+      }
+    };
+
+    fetchProjects();
+  }, []);
+
+  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // TODO: POST /api/tasks with form payload
-    // await fetch("/api/tasks", {
-    //   method: "POST",
-    //   headers: { "Content-Type": "application/json" },
-    //   body: JSON.stringify(form),
-    // });
-
-    // TODO: navigate away or show toast
-    // navigate("/dashboard/project‑manager");
-    console.log("Task to create:", form);
+    try {
+      const token = localStorage.getItem("token");
+      await axios.post("http://localhost:8080/api/tasks", form, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      alert("✅ Task created successfully and credentials sent!");
+      navigate("/dashboard/project-manager");
+    } catch (error) {
+      console.error("❌ Error creating task:", error);
+      alert("Failed to create task.");
+    }
   };
 
   return (
-    <div
-    className="container py-5 border border-2 border-dark rounded"
-    style={{ maxWidth: "640px" }}
-    >
+    <div className="container py-5 border border-2 border-dark rounded" style={{ maxWidth: "640px" }}>
       <h1 className="mb-4 text-center">Create New Task</h1>
 
       <form onSubmit={handleSubmit}>
         {/* Task Name */}
         <div className="mb-3">
-          <label htmlFor="title" className="form-label fw-semibold">
-            Task Name
-          </label>
+          <label htmlFor="title" className="form-label fw-semibold">Task Name</label>
           <input
             type="text"
             id="title"
@@ -57,9 +75,7 @@ export default function CreateTask() {
 
         {/* Task Description */}
         <div className="mb-3">
-          <label htmlFor="description" className="form-label fw-semibold">
-            Task Description
-          </label>
+          <label htmlFor="description" className="form-label fw-semibold">Task Description</label>
           <textarea
             id="description"
             name="description"
@@ -72,9 +88,7 @@ export default function CreateTask() {
 
         {/* Due Date */}
         <div className="mb-3">
-          <label htmlFor="dueDate" className="form-label fw-semibold">
-            Due Date
-          </label>
+          <label htmlFor="dueDate" className="form-label fw-semibold">Due Date</label>
           <input
             type="date"
             id="dueDate"
@@ -88,9 +102,7 @@ export default function CreateTask() {
 
         {/* Urgency */}
         <div className="mb-3">
-          <label htmlFor="urgency" className="form-label fw-semibold">
-            Urgency
-          </label>
+          <label htmlFor="urgency" className="form-label fw-semibold">Urgency</label>
           <select
             id="urgency"
             name="urgency"
@@ -100,15 +112,33 @@ export default function CreateTask() {
           >
             <option value="immediate">Immediate</option>
             <option value="medium">Medium</option>
-            <option value="not urgent">Not Urgent</option>
+            <option value="not urgent">Not Urgent</option>
+          </select>
+        </div>
+
+        {/* Project Selection */}
+        <div className="mb-3">
+          <label htmlFor="projectId" className="form-label fw-semibold">Assign to Project</label>
+          <select
+            id="projectId"
+            name="projectId"
+            className="form-select"
+            value={form.projectId}
+            onChange={handleChange}
+            required
+          >
+            <option value="">-- Select Project --</option>
+            {projects.map((project) => (
+              <option key={project.id} value={project.id}>
+                {project.name}
+              </option>
+            ))}
           </select>
         </div>
 
         {/* Assignee Name */}
         <div className="mb-3">
-          <label htmlFor="assigneeName" className="form-label fw-semibold">
-            Assignee Name
-          </label>
+          <label htmlFor="assigneeName" className="form-label fw-semibold">Assignee Name</label>
           <input
             type="text"
             id="assigneeName"
@@ -122,9 +152,7 @@ export default function CreateTask() {
 
         {/* Assignee Email */}
         <div className="mb-4">
-          <label htmlFor="assigneeEmail" className="form-label fw-semibold">
-            Assignee Email
-          </label>
+          <label htmlFor="assigneeEmail" className="form-label fw-semibold">Assignee Email</label>
           <input
             type="email"
             id="assigneeEmail"
@@ -146,4 +174,3 @@ export default function CreateTask() {
     </div>
   );
 }
-
