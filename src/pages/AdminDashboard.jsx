@@ -129,11 +129,11 @@ const Projects = () => {
                   <p className="card-text">{project.description}</p>
                   <div className="mb-2">
                     <small className="text-muted">
-                      <strong>Manager:</strong>{" "}
-                      {project.manager?.name} ({project.manager?.email})
-                      <br />
-                      <strong>Duration:</strong> {project.startDate} to {project.endDate}
-                    </small>
+                    <strong>Manager:</strong> {project.managerName} ({project.managerEmail})
+                    <br />
+                    <strong>Duration:</strong> {project.startDate} to {project.endDate}
+                  </small>
+
                   </div>
                   <Link to={`/projects/${project.id}`} className="btn btn-outline-primary">
                     View Details
