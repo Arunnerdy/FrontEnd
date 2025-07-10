@@ -1,12 +1,15 @@
 import { Link, useNavigate } from "react-router-dom"
+import { Dropdown } from "react-bootstrap";
 
 const Navbar = () => {
   const navigate = useNavigate()
 
   const handleLogout = () => {
-    logout()
-    navigate("/login")
-  }
+  localStorage.removeItem("token");
+  localStorage.removeItem("role");
+  //window.location.href = "/"; // redirect to login
+  navigate("/");
+}
 
   return (
     <nav className="navbar navbar-expand-lg navbar-dark bg1-primary">
@@ -39,22 +42,20 @@ const Navbar = () => {
                   </Link>
                 </li>
               </ul>
-              <ul className="navbar-nav">
-                <li className="nav-item dropdown">
-                  <a className="nav-link dropdown-toggle txt_color myhover" href="#" role="button" data-bs-toggle="dropdown">
-                    Manoj C
-                  </a>
-                  <ul className="dropdown-menu">
-                    
-                    
-                    <li>
-                      <button className="dropdown-item" onClick={handleLogout}>
-                        Logout
-                      </button>
-                    </li>
-                  </ul>
-                </li>
-              </ul>
+              <Dropdown align="end">
+              <Dropdown.Toggle variant="secondary" className="txt_color myhover bg-transparent border-0">
+                Manoj C
+              </Dropdown.Toggle>
+
+              <Dropdown.Menu>
+                
+                <Dropdown.Item as={Link} to="/edit-user-info" className="btn-black-white1">
+                  Edit User Info
+                </Dropdown.Item>
+                <Dropdown.Divider />
+                <Dropdown.Item onClick={handleLogout} className="btn-black-white1">Logout</Dropdown.Item>
+              </Dropdown.Menu>
+            </Dropdown>
             </>
           
         </div>
