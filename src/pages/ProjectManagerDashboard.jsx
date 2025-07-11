@@ -4,40 +4,44 @@ import axios from "axios"
 
 const Dashboard = () => {
   const [projects, setProjects] = useState([])
-  const [tasks, setTasks] = useState([]) // You can later fetch tasks assigned to the user
+  const [tasks, setTasks] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    const token = localStorage.getItem("token")
+
     const fetchProjects = async () => {
       try {
-        const token = localStorage.getItem("token")
-
         const res = await axios.get("http://localhost:8080/api/projects/my-projects", {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         })
-
-        const userProjects = res.data
-
-        // Optional: Format projects to match mock structure
-        const formattedProjects = userProjects.map((proj) => ({
-          id: proj.id,
-          name: proj.name,
-          status: proj.status,
-          dueDate: proj.endDate,
-          tasksCount: 0, // Replace with actual count when task data is integrated
-        }))
-
-        setProjects(formattedProjects)
+        setProjects(res.data) // ✅ Use original response
       } catch (error) {
-        console.error("Failed to fetch projects for user:", error)
-      } finally {
-        setLoading(false)
+        console.error("❌ Failed to fetch projects:", error)
       }
     }
 
-    fetchProjects()
+    const fetchTasks = async () => {
+      try {
+        const res = await axios.get("http://localhost:8080/api/my-tasks", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        })
+        setTasks(res.data)
+      } catch (error) {
+        console.error("❌ Failed to fetch tasks:", error)
+      }
+    }
+
+    const fetchData = async () => {
+      await Promise.all([fetchProjects(), fetchTasks()])
+      setLoading(false)
+    }
+
+    fetchData()
   }, [])
 
   if (loading) {
@@ -54,6 +58,7 @@ const Dashboard = () => {
       </div>
 
       <div className="row">
+        {/* My Projects */}
         <div className="col-md-8">
           <div className="card">
             <div className="card-header">
@@ -74,10 +79,10 @@ const Dashboard = () => {
                     >
                       <div className="d-flex w-100 justify-content-between">
                         <h6 className="mb-1">{project.name}</h6>
-                        <small className="text-muted">Due: {project.dueDate}</small>
+                        <small className="text-muted">Due: {project.endDate}</small>
                       </div>
                       <p className="mb-1">Status: {project.status}</p>
-                      <small>{project.tasksCount} tasks</small>
+                      <small>{project.tasks?.length || 0} tasks</small>
                     </Link>
                   ))}
                 </div>
@@ -86,6 +91,7 @@ const Dashboard = () => {
           </div>
         </div>
 
+        {/* My Tasks + Stats */}
         <div className="col-md-4">
           <div className="card">
             <div className="card-header">
@@ -100,11 +106,13 @@ const Dashboard = () => {
                     <div key={task.id} className="list-group-item">
                       <div className="d-flex w-100 justify-content-between">
                         <h6 className="mb-1">{task.title}</h6>
-                        <small className={`priority-${task.priority.toLowerCase()}`}>{task.priority}</small>
+                        <small className={`priority-${(task.priority || task.urgency || "").toLowerCase()}`}>
+                          {(task.priority || task.urgency || "").toUpperCase()}
+                        </small>
                       </div>
-                      <p className="mb-1">{task.project}</p>
+                      <p className="mb-1">{task.project?.name || "No Project"}</p>
                       <small>
-                        Due: {task.dueDate} | Status: {task.status}
+                        Due: {task.dueDate} | Status: {task.status || "To Do"}
                       </small>
                     </div>
                   ))}
@@ -113,6 +121,7 @@ const Dashboard = () => {
             </div>
           </div>
 
+          {/* Quick Stats */}
           <div className="card mt-3">
             <div className="card-header">
               <h5>Quick Stats</h5>

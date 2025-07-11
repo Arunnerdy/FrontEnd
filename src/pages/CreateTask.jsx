@@ -10,10 +10,10 @@ export default function CreateTask() {
     title: "",
     description: "",
     dueDate: "",
-    urgency: "immediate",
+    status: "To Do", // ✅ Default status
     assigneeName: "",
     assigneeEmail: "",
-    projectId: "", // ✅ Project ID will be set via dropdown
+    projectId: "",
   });
 
   // ✅ Fetch user's projects on mount
@@ -47,7 +47,7 @@ export default function CreateTask() {
         },
       });
       alert("✅ Task created successfully and credentials sent!");
-      navigate("/dashboard/project-manager");
+      navigate("/project-manager-dashboard");
     } catch (error) {
       console.error("❌ Error creating task:", error);
       alert("Failed to create task.");
@@ -100,19 +100,19 @@ export default function CreateTask() {
           />
         </div>
 
-        {/* Urgency */}
+        {/* Status */}
         <div className="mb-3">
-          <label htmlFor="urgency" className="form-label fw-semibold">Urgency</label>
+          <label htmlFor="status" className="form-label fw-semibold">Status</label>
           <select
-            id="urgency"
-            name="urgency"
+            id="status"
+            name="status"
             className="form-select"
-            value={form.urgency}
+            value={form.status}
             onChange={handleChange}
           >
-            <option value="immediate">Immediate</option>
-            <option value="medium">Medium</option>
-            <option value="not urgent">Not Urgent</option>
+            <option value="To Do">To Do</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Done">Done</option>
           </select>
         </div>
 
