@@ -47,9 +47,9 @@ const NotificationBell = () => {
         style={{ background: "none", border: "none" }}
       >
         {unread ? (
-          <FaBell style={{ color: "black" }} size={24} />
+          <FaBell style={{ color: "white" }} size={24} />
         ) : (
-          <FaBellSlash style={{ color: "gray" }} size={24} />
+          <FaBellSlash style={{ color: "white" }} size={24} />
         )}
         {unread && (
           <span
