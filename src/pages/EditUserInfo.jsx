@@ -1,54 +1,95 @@
+// EditUserInfo.jsx
 import React, { useState, useEffect } from "react";
+import axios from "axios";
 import { Modal, Button } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 
-const dummyUserData = {
-  name: "Manoj C",
-  email: "manoj@example.com",
-  phone: "9876543210",
-  DOB: "01-01-2000",
-};
-
 export default function EditUserInfo() {
+  /* ---------- STATE ---------- */
   const [user, setUser] = useState({
     name: "",
     email: "",
-    phone: "",
-    DOB: "",
+    phone: "9876543210", // dummy phone
+    password: "",
   });
-
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
   const navigate = useNavigate();
 
+  /* ---------- load name + email ---------- */
   useEffect(() => {
-    // Simulate data fetching from a JS object
-    setUser(dummyUserData);
+    (async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const { data } = await axios.get(
+          "http://localhost:8080/api/users/me",
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setUser((u) => ({ ...u, name: data.name, email: data.email }));
+      } catch (err) {
+        console.error("Could not fetch user data:", err);
+      }
+    })();
   }, []);
 
-  const handleChange = (e) => {
+  /* ---------- input handlers ---------- */
+  const handleChange = (e) =>
     setUser({ ...user, [e.target.name]: e.target.value });
-  };
 
-  const handleUpdate = (e) => {
+  /* ---------- submit password ---------- */
+  const handleUpdate = async (e) => {
     e.preventDefault();
-    console.log("Updated User Info:", user);
-    setShowSuccessModal(true);
+    try {
+      const token = localStorage.getItem("token");
+      await axios.put(
+        "http://localhost:8080/api/users/me/password",
+        { password: user.password },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setUser((u) => ({ ...u, password: "" }));
+      setShowSuccess(true);
+    } catch (err) {
+      console.error("Password update failed:", err);
+      alert("Could not update password – please try again.");
+    }
   };
 
-  const handleClose = () => setShowSuccessModal(false);
+  /* ---------- role‑based redirect ---------- */
+  const goToDashboard = () => {
+    const role = localStorage.getItem("role"); 
+    console.log(role);// e.g. "ADMIN", "PROJECT_MANAGER", "TEAM_MEMBER"
+    switch (role) {
+      case "ROLE_ADMIN":
+        navigate("/projects");
+        break;
+      case "ROLE_PROJECT_MANAGER":
+        navigate("/project-manager-dashboard");
+        break;
+      case "ROLE_TEAM_MEMBER":
+        navigate("/team-member-dashboard");
+        break;
+      //default:
+      //navigate("/"); // fallback
+    }
+  };
 
   return (
     <div className="container mt-5" style={{ maxWidth: "600px" }}>
       <h3 className="mb-4 text-center">Edit User Info</h3>
+
       <form onSubmit={handleUpdate}>
+        {/* Name (read‑only) */}
         <div className="mb-3">
           <label className="form-label fw-semibold">Name</label>
-          <input type="text" className="form-control" value={user.name} readOnly />
+          <input className="form-control" value={user.name} readOnly />
         </div>
+
+        {/* Email (read‑only) */}
         <div className="mb-3">
           <label className="form-label fw-semibold">Email</label>
-          <input type="email" className="form-control" value={user.email} readOnly />
+          <input className="form-control" value={user.email} readOnly />
         </div>
+
+        {/* Phone (dummy editable) */}
         <div className="mb-3">
           <label className="form-label fw-semibold">Phone</label>
           <input
@@ -59,36 +100,43 @@ export default function EditUserInfo() {
             onChange={handleChange}
           />
         </div>
+
+        {/* New password */}
         <div className="mb-4">
-          <label className="form-label fw-semibold">Date of Birth</label>
+          <label className="form-label fw-semibold">New Password</label>
           <input
-            type="date"
-            name="dob"
+            type="password"
+            name="password"
             className="form-control"
-            value={user.DOB}
+            value={user.password}
             onChange={handleChange}
+            required
           />
         </div>
+
         <div className="d-grid">
           <button type="submit" className="btn btn-lg btn-black-white">
             Update
           </button>
           <br />
-          <button type="button" className="btn btn-dark btn-lg btn-black-white" onClick={() => navigate("/")}>
+          <button
+            type="button"
+            className="btn btn-dark btn-lg btn-black-white"
+            onClick={goToDashboard}
+          >
             Cancel
           </button>
-          <br />
         </div>
       </form>
 
-      {/* ✅ Success Modal */}
-      <Modal show={showSuccessModal} onHide={handleClose} centered>
+      {/* success modal */}
+      <Modal show={showSuccess} onHide={() => setShowSuccess(false)} centered>
         <Modal.Header closeButton>
           <Modal.Title>✅ Success</Modal.Title>
         </Modal.Header>
-        <Modal.Body>User information updated successfully!</Modal.Body>
+        <Modal.Body>Password updated successfully!</Modal.Body>
         <Modal.Footer>
-          <Button variant="dark" onClick={handleClose}>
+          <Button variant="dark" onClick={() => setShowSuccess(false)}>
             Close
           </Button>
         </Modal.Footer>

@@ -19,7 +19,6 @@ const NotificationBell = () => {
       });
     */
 
-    // Simulated notifications
     const mockNotifications = [
       { id: 1, message: "You were assigned to the XYZ project", read: false },
       { id: 2, message: "You have Design task on ABC project", read: false },

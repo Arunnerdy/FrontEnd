@@ -1,88 +1,144 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
 import TaskCard from "./TaskCard";
 import { FaFilter, FaArrowLeft } from "react-icons/fa";
 
 export default function TeamMemberDashboard() {
   const [username, setUsername] = useState("Username");
   const [projects, setProjects] = useState([]);
-  const [selectedProject, setSelectedProject] = useState();
+  const [selectedProject, setSelectedProject] = useState(null);
   const [tasks, setTasks] = useState([]);
   const [urgencyFilter, setUrgencyFilter] = useState("all");
 
-  // ✅ Step 1: Fetch assigned projects on mount
+  const [pendingTasksAll, setPendingTasksAll] = useState([]);
+  const [completedTasks, setCompletedTasks] = useState([]);
+  const [pendingTasks, setPendingTasks] = useState([]);
+
+  /* -------- auth header -------- */
+  const token = localStorage.getItem("token");
+  const auth = { headers: { Authorization: `Bearer ${token}` } };
+
+  /* -------- fetch projects (once) -------- */
   useEffect(() => {
-    const fetchProjects = async () => {
-      const token = localStorage.getItem("token");
+    (async () => {
       try {
-        const response = await fetch("http://localhost:8080/api/projects/assigned-projects", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch projects");
-        }
-
-        const data = await response.json();
+        const { data } = await axios.get(
+          "http://localhost:8080/api/projects/assigned-projects",
+          auth
+        );
         setProjects(data);
-      } catch (error) {
-        console.error("Error fetching projects:", error);
+      } catch (e) {
+        console.error("Projects error:", e);
       }
-    };
-
-    fetchProjects();
+    })();
   }, []);
 
-  // ✅ Step 2: Fetch tasks when a project is selected
+  /* -------- fetch tasks when project selected -------- */
   useEffect(() => {
     if (!selectedProject) return;
-
-    const fetchTasks = async () => {
-      const token = localStorage.getItem("token");
-
+    (async () => {
       try {
-        const response = await fetch(
+        const { data } = await axios.get(
           `http://localhost:8080/api/projects/${selectedProject.id}/my-tasks`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
+          auth
         );
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch tasks");
-        }
-
-        const data = await response.json();
         setTasks(data);
-      } catch (error) {
-        console.error("Error fetching tasks:", error);
+      } catch (e) {
+        console.error("Tasks error:", e);
       }
-    };
-
-    fetchTasks();
+    })();
   }, [selectedProject]);
 
+  /* -------- fetch current user name -------- */
+  useEffect(() => {
+    (async () => {
+      if (!token) return;
+      try {
+        const { data } = await axios.get(
+          "http://localhost:8080/api/users/me",
+          auth
+        );
+        setUsername(data.name);
+      } catch (e) {
+        console.error("User error:", e);
+      }
+    })();
+  }, []);
+
+  /* -------- recompute helper lists -------- */
+  useEffect(() => {
+    const pending = tasks.filter((t) => !t.completed);
+    const completed = tasks.filter((t) => t.completed);
+    const filteredPending =
+      urgencyFilter === "all"
+        ? pending
+        : pending.filter((t) => t.urgency === urgencyFilter);
+
+    setPendingTasksAll(pending);
+    setCompletedTasks(completed);
+    setPendingTasks(filteredPending);
+  }, [tasks, urgencyFilter]);
+
+  /* -------- toggle completion -------- */
   const handleToggleCompletion = async (taskId) => {
+    const original = tasks.find((t) => t.id === taskId);
+    if (!original) return;
+
+    console.log("📦 BEFORE optimistic update:", tasks);
+
+    /* optimistic update */
     setTasks((prev) =>
-      prev.map((t) => (t.id === taskId ? { ...t, completed: true } : t))
+      prev.map((t) =>
+        t.id === taskId
+          ? {
+              ...t,
+              completed: !t.completed,
+              status: !t.completed ? "Done" : "In Progress",
+            }
+          : t
+      )
     );
 
-    // Optional: You can send a PATCH request here to update task status in DB
-    // Example: await fetch(`/api/tasks/${taskId}/complete`, { method: 'PATCH', ... })
+    setTimeout(() => console.log("⚡ AFTER optimistic update:", tasks), 0);
+
+    try {
+      const { data: serverTask } = await axios.put(
+        `http://localhost:8080/api/tasks/${taskId}/completed`,
+        { completed: !original.completed },
+        auth
+      );
+
+      console.log("✅ SERVER returned:", serverTask);
+
+      /* merge, but ensure status rule is honored */
+      const merged = {
+        ...serverTask,
+        status: serverTask.completed ? "Done" : "In Progress",
+      };
+
+      setTasks((prev) =>
+        prev.map((t) => (t.id === taskId ? merged : t))
+      );
+
+      setTimeout(() => console.log("📬 AFTER merge with server:", tasks), 0);
+    } catch (e) {
+      console.error("❌ Toggle failed; rolling back:", e);
+
+      setTasks((prev) =>
+        prev.map((t) => (t.id === taskId ? original : t))
+      );
+
+      setTimeout(() => console.log("↩️ AFTER rollback:", tasks), 0);
+
+      alert(
+        e.response?.status === 403
+          ? "You’re not allowed to modify this task."
+          : "Could not update task – please try again."
+      );
+    }
   };
 
-  const pendingTasksAll = useMemo(() => tasks.filter((t) => !t.completed), [tasks]);
-  const completedTasks = useMemo(() => tasks.filter((t) => t.completed), [tasks]);
-
-  const pendingTasks = useMemo(() => {
-    if (urgencyFilter === "all") return pendingTasksAll;
-    return pendingTasksAll.filter((t) => t.urgency === urgencyFilter);
-  }, [pendingTasksAll, urgencyFilter]);
-
-  // 🚩 No project selected yet → show project tiles
+  /* -------- UI: project selector -------- */
   if (!selectedProject) {
     return (
       <div className="container py-4 mt-5">
@@ -95,7 +151,7 @@ export default function TeamMemberDashboard() {
             <div className="col" key={p.id}>
               <button
                 onClick={() => setSelectedProject(p)}
-                className="card h-100 w-100 p-5 text-center border border-dark text-dark fw-bold shadow-sm"
+                className="card h-100 w-100 p-5 text-center border border-dark fw-bold shadow-sm"
                 style={{ minHeight: "180px", fontSize: "1.3rem" }}
               >
                 {p.name}
@@ -104,22 +160,21 @@ export default function TeamMemberDashboard() {
           ))}
         </div>
 
-        {projects.length === 0 && (
+        {!projects.length && (
           <p className="mt-5 text-muted">No projects assigned.</p>
         )}
       </div>
     );
   }
 
-  // ✅ Project is selected → show tasks for the project
+  /* -------- UI: tasks dashboard -------- */
   return (
     <div className="container py-4">
       <button
-        className="btn btn-link text-decoration-none mb-3"
-        onClick={() => setSelectedProject(undefined)}
+        className="btn btn-link mb-3"
+        onClick={() => setSelectedProject(null)}
       >
-        <FaArrowLeft className="me-2 fw-bold" />
-        Back to Projects
+        <FaArrowLeft className="me-2" /> Back to Projects
       </button>
 
       <h1 className="display-6 fw-bold mb-4">
@@ -127,19 +182,20 @@ export default function TeamMemberDashboard() {
       </h1>
 
       <div className="row g-4">
-        <div className="col-12 col-md-8">
-          {/* ---------- Pending Tasks ---------- */}
+        {/* list column */}
+        <div className="col-md-8">
+          {/* Pending */}
           <section className="mb-5">
             <div className="d-flex align-items-center mb-3">
-              <h2 className="h4 fw-semibold mb-0">Pending Tasks</h2>
-              <div className="ms-auto d-flex align-items-center gap-2">
-                <FaFilter className="text-muted" title="Filter by urgency" />
+              <h2 className="h4 mb-0">Pending Tasks</h2>
+              <div className="ms-auto d-flex gap-2">
+                <FaFilter className="text-muted" />
                 <select
                   className="form-select form-select-sm w-auto"
                   value={urgencyFilter}
                   onChange={(e) => setUrgencyFilter(e.target.value)}
                 >
-                  <option value="all">All urgencies</option>
+                  <option value="all">All</option>
                   <option value="immediate">Immediate</option>
                   <option value="medium">Medium</option>
                   <option value="not urgent">Not Urgent</option>
@@ -148,43 +204,42 @@ export default function TeamMemberDashboard() {
             </div>
 
             {pendingTasks.length ? (
-              pendingTasks.map((task) => (
-                <TaskCard key={task.id} task={task} onToggle={handleToggleCompletion} />
+              pendingTasks.map((t) => (
+                <TaskCard key={t.id} task={t} onToggle={handleToggleCompletion} />
               ))
             ) : (
-              <p className="h5 text-muted">No pending tasks!!</p>
+              <p className="text-muted">No pending tasks.</p>
             )}
           </section>
 
-          {/* ---------- Completed Tasks ---------- */}
+          {/* Completed */}
           <section>
-            <h2 className="h4 fw-semibold mb-3">Completed Tasks</h2>
+            <h2 className="h4 mb-3">Completed Tasks</h2>
             {completedTasks.length ? (
-              completedTasks.map((task) => (
-                <TaskCard
-                  key={task.id}
-                  task={task}
-                  onToggle={handleToggleCompletion}
-                  disabledToggle
-                />
+              completedTasks.map((t) => (
+                <TaskCard key={t.id} task={t} onToggle={handleToggleCompletion} />
               ))
             ) : (
-              <p className="h5 text-muted">No completed tasks yet.</p>
+              <p className="text-muted">No completed tasks yet.</p>
             )}
           </section>
         </div>
 
-        {/* ---------- Stats Sidebar ---------- */}
-        <aside className="col-12 col-md-4 pt-md-5">
+        {/* sidebar */}
+        <aside className="col-md-4 pt-md-5">
           <div className="card p-4">
             <div className="d-flex justify-content-between text-center mb-4">
               <div>
-                <p className="mb-1 fw-bold fs-6">Pending</p>
-                <p className="fs-3 fw-bold text-danger mb-0">{pendingTasksAll.length}</p>
+                <p className="mb-1">Pending</p>
+                <p className="fs-3 text-danger mb-0">
+                  {pendingTasksAll.length}
+                </p>
               </div>
               <div>
-                <p className="mb-1 fw-bold fs-6">Completed</p>
-                <p className="fs-3 fw-bold text-success mb-0">{completedTasks.length}</p>
+                <p className="mb-1">Completed</p>
+                <p className="fs-3 text-success mb-0">
+                  {completedTasks.length}
+                </p>
               </div>
             </div>
 
@@ -194,15 +249,14 @@ export default function TeamMemberDashboard() {
             <div className="progress" style={{ height: 20 }}>
               <div
                 className="progress-bar bg-success progress-bar-striped progress-bar-animated"
-                role="progressbar"
                 style={{
-                  width: `${(completedTasks.length / tasks.length) * 100 || 0}%`,
+                  width: `${(completedTasks.length / (tasks.length || 1)) * 100}%`,
                 }}
-                aria-valuenow={completedTasks.length}
-                aria-valuemin="0"
-                aria-valuemax={tasks.length}
               >
-                {Math.round(((completedTasks.length || 0) / (tasks.length || 1)) * 100)}%
+                {Math.round(
+                  (completedTasks.length / (tasks.length || 1)) * 100
+                )}
+                %
               </div>
             </div>
           </div>
