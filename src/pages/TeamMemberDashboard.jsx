@@ -1,24 +1,57 @@
+/* ===========================================
+   TeamMemberDashboard.jsx  —  Polling edition
+   Polls /api/projects/{id}/my-tasks every 10 s
+   =========================================== */
+
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import TaskCard from "./TaskCard";
 import { FaFilter, FaArrowLeft } from "react-icons/fa";
 
+/* ---------- polling hook ---------- */
+function usePollingTasks(projectId, interval = 10000, auth) {
+  const [tasks, setTasks] = useState([]);
+
+  useEffect(() => {
+    if (!projectId) return;                   // nothing selected → skip
+
+    let cancel = false;
+
+    async function fetchOnce() {
+      try {
+        const { data } = await axios.get(
+          `http://localhost:8080/api/projects/${projectId}/my-tasks`,
+          auth
+        );
+        if (!cancel) setTasks(data);
+      } catch (err) {
+        console.error("Task polling error:", err);
+      }
+    }
+
+    fetchOnce();                              // immediate first load
+    const id = setInterval(fetchOnce, interval);
+
+    return () => {
+      cancel = true;                          // stop setState after unmount
+      clearInterval(id);                      // clear timer
+    };
+  }, [projectId, interval]);
+
+  return [tasks, setTasks];
+}
+
+/* ---------- main component ---------- */
 export default function TeamMemberDashboard() {
   const [username, setUsername] = useState("Username");
   const [projects, setProjects] = useState([]);
   const [selectedProject, setSelectedProject] = useState(null);
-  const [tasks, setTasks] = useState([]);
   const [urgencyFilter, setUrgencyFilter] = useState("all");
 
-  const [pendingTasksAll, setPendingTasksAll] = useState([]);
-  const [completedTasks, setCompletedTasks] = useState([]);
-  const [pendingTasks, setPendingTasks] = useState([]);
-
-  /* -------- auth header -------- */
   const token = localStorage.getItem("token");
-  const auth = { headers: { Authorization: `Bearer ${token}` } };
+  const auth  = { headers: { Authorization: `Bearer ${token}` } };
 
-  /* -------- fetch projects (once) -------- */
+  /* projects once */
   useEffect(() => {
     (async () => {
       try {
@@ -27,79 +60,57 @@ export default function TeamMemberDashboard() {
           auth
         );
         setProjects(data);
-      } catch (e) {
-        console.error("Projects error:", e);
+      } catch (err) {
+        console.error("Projects error:", err);
       }
     })();
   }, []);
 
-  /* -------- fetch tasks when project selected -------- */
-  useEffect(() => {
-    if (!selectedProject) return;
-    (async () => {
-      try {
-        const { data } = await axios.get(
-          `http://localhost:8080/api/projects/${selectedProject.id}/my-tasks`,
-          auth
-        );
-        setTasks(data);
-      } catch (e) {
-        console.error("Tasks error:", e);
-      }
-    })();
-  }, [selectedProject]);
-
-  /* -------- fetch current user name -------- */
+  /* username once */
   useEffect(() => {
     (async () => {
       if (!token) return;
       try {
         const { data } = await axios.get(
-          "http://localhost:8080/api/users/me",
-          auth
+          "http://localhost:8080/api/users/me", auth
         );
         setUsername(data.name);
-      } catch (e) {
-        console.error("User error:", e);
+      } catch (err) {
+        console.error("User error:", err);
       }
     })();
   }, []);
 
-  /* -------- recompute helper lists -------- */
-  useEffect(() => {
-    const pending = tasks.filter((t) => !t.completed);
-    const completed = tasks.filter((t) => t.completed);
-    const filteredPending =
-      urgencyFilter === "all"
-        ? pending
-        : pending.filter((t) => t.urgency === urgencyFilter);
+  /* ------- POLLING ------- */
+  const [tasks, setTasks] = usePollingTasks(
+    selectedProject?.id,
+    10000,      // 10‑second interval
+    auth
+  );
 
-    setPendingTasksAll(pending);
-    setCompletedTasks(completed);
-    setPendingTasks(filteredPending);
-  }, [tasks, urgencyFilter]);
+  /* helper lists */
+  const pendingTasksAll = tasks.filter(t => !t.completed);
+  const completedTasks  = tasks.filter(t =>  t.completed);
+  const pendingTasks    =
+    urgencyFilter === "all"
+      ? pendingTasksAll
+      : pendingTasksAll.filter(t => t.urgency === urgencyFilter);
 
-  /* -------- toggle completion -------- */
+  /* toggle */
   const handleToggleCompletion = async (taskId) => {
-    const original = tasks.find((t) => t.id === taskId);
+    const original = tasks.find(t => t.id === taskId);
     if (!original) return;
 
-    console.log("📦 BEFORE optimistic update:", tasks);
-
-    /* optimistic update */
-    setTasks((prev) =>
-      prev.map((t) =>
+    // optimistic UI
+    setTasks(prev =>
+      prev.map(t =>
         t.id === taskId
-          ? {
-              ...t,
+          ? { ...t,
               completed: !t.completed,
-              status: !t.completed ? "Done" : "In Progress",
-            }
+              status: !t.completed ? "Done" : "In Progress" }
           : t
       )
     );
-
-    setTimeout(() => console.log("⚡ AFTER optimistic update:", tasks), 0);
 
     try {
       const { data: serverTask } = await axios.put(
@@ -108,37 +119,19 @@ export default function TeamMemberDashboard() {
         auth
       );
 
-      console.log("✅ SERVER returned:", serverTask);
-
-      /* merge, but ensure status rule is honored */
       const merged = {
         ...serverTask,
         status: serverTask.completed ? "Done" : "In Progress",
       };
-
-      setTasks((prev) =>
-        prev.map((t) => (t.id === taskId ? merged : t))
-      );
-
-      setTimeout(() => console.log("📬 AFTER merge with server:", tasks), 0);
-    } catch (e) {
-      console.error("❌ Toggle failed; rolling back:", e);
-
-      setTasks((prev) =>
-        prev.map((t) => (t.id === taskId ? original : t))
-      );
-
-      setTimeout(() => console.log("↩️ AFTER rollback:", tasks), 0);
-
-      alert(
-        e.response?.status === 403
-          ? "You’re not allowed to modify this task."
-          : "Could not update task – please try again."
-      );
+      setTasks(prev => prev.map(t => (t.id === taskId ? merged : t)));
+    } catch (err) {
+      console.error("Toggle failed; rollback:", err);
+      setTasks(prev => prev.map(t => (t.id === taskId ? original : t)));
+      alert("Could not update task – please try again.");
     }
   };
 
-  /* -------- UI: project selector -------- */
+  /* --------- UI: choose project --------- */
   if (!selectedProject) {
     return (
       <div className="container py-4 mt-5">
@@ -147,12 +140,12 @@ export default function TeamMemberDashboard() {
         </h1>
 
         <div className="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-4">
-          {projects.map((p) => (
+          {projects.map(p => (
             <div className="col" key={p.id}>
               <button
                 onClick={() => setSelectedProject(p)}
                 className="card h-100 w-100 p-5 text-center border border-dark fw-bold shadow-sm"
-                style={{ minHeight: "180px", fontSize: "1.3rem" }}
+                style={{ minHeight: 180, fontSize: "1.3rem" }}
               >
                 {p.name}
               </button>
@@ -167,13 +160,10 @@ export default function TeamMemberDashboard() {
     );
   }
 
-  /* -------- UI: tasks dashboard -------- */
+  /* --------- UI: tasks dashboard --------- */
   return (
     <div className="container py-4">
-      <button
-        className="btn btn-link mb-3"
-        onClick={() => setSelectedProject(null)}
-      >
+      <button className="btn btn-link mb-3" onClick={() => setSelectedProject(null)}>
         <FaArrowLeft className="me-2" /> Back to Projects
       </button>
 
@@ -193,7 +183,7 @@ export default function TeamMemberDashboard() {
                 <select
                   className="form-select form-select-sm w-auto"
                   value={urgencyFilter}
-                  onChange={(e) => setUrgencyFilter(e.target.value)}
+                  onChange={e => setUrgencyFilter(e.target.value)}
                 >
                   <option value="all">All</option>
                   <option value="immediate">Immediate</option>
@@ -204,7 +194,7 @@ export default function TeamMemberDashboard() {
             </div>
 
             {pendingTasks.length ? (
-              pendingTasks.map((t) => (
+              pendingTasks.map(t => (
                 <TaskCard key={t.id} task={t} onToggle={handleToggleCompletion} />
               ))
             ) : (
@@ -216,7 +206,7 @@ export default function TeamMemberDashboard() {
           <section>
             <h2 className="h4 mb-3">Completed Tasks</h2>
             {completedTasks.length ? (
-              completedTasks.map((t) => (
+              completedTasks.map(t => (
                 <TaskCard key={t.id} task={t} onToggle={handleToggleCompletion} />
               ))
             ) : (
@@ -231,15 +221,11 @@ export default function TeamMemberDashboard() {
             <div className="d-flex justify-content-between text-center mb-4">
               <div>
                 <p className="mb-1">Pending</p>
-                <p className="fs-3 text-danger mb-0">
-                  {pendingTasksAll.length}
-                </p>
+                <p className="fs-3 text-danger mb-0">{pendingTasksAll.length}</p>
               </div>
               <div>
                 <p className="mb-1">Completed</p>
-                <p className="fs-3 text-success mb-0">
-                  {completedTasks.length}
-                </p>
+                <p className="fs-3 text-success mb-0">{completedTasks.length}</p>
               </div>
             </div>
 

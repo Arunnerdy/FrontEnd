@@ -1,52 +1,63 @@
-import { useState, useEffect } from "react"
-import { Link } from "react-router-dom"
-import axios from "axios"
+/* =====================================================
+   Dashboard.jsx  –  Polled every 10 s for fresh data
+   ===================================================== */
 
-const Dashboard = () => {
-  const [projects, setProjects] = useState([])
-  const [tasks, setTasks] = useState([])
-  const [loading, setLoading] = useState(true)
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import axios from "axios";
+
+/* ---------- reusable polling hook ---------- */
+function usePolling(url, interval = 10000) {
+  const [data, setData] = useState([]);
+  const token = localStorage.getItem("token");
+  const auth  = { headers: { Authorization: `Bearer ${token}` } };
 
   useEffect(() => {
-    const token = localStorage.getItem("token")
+    if (!url) return;                       // guard
 
-    const fetchProjects = async () => {
+    let cancel = false;
+
+    async function fetchOnce() {
       try {
-        const res = await axios.get("http://localhost:8080/api/projects/my-projects", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        })
-        setProjects(res.data) // ✅ Use original response
-      } catch (error) {
-        console.error("❌ Failed to fetch projects:", error)
+        const res = await axios.get(url, auth);
+        if (!cancel) setData(res.data);
+      } catch (err) {
+        console.error(`Polling error for ${url}:`, err);
       }
     }
 
-    const fetchTasks = async () => {
-      try {
-        const res = await axios.get("http://localhost:8080/api/my-tasks", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        })
-        setTasks(res.data)
-      } catch (error) {
-        console.error("❌ Failed to fetch tasks:", error)
-      }
-    }
+    fetchOnce();                            // initial load
+    const id = setInterval(fetchOnce, interval);
 
-    const fetchData = async () => {
-      await Promise.all([fetchProjects(), fetchTasks()])
-      setLoading(false)
-    }
+    return () => {
+      cancel = true;
+      clearInterval(id);                    // cleanup
+    };
+  }, [url, interval]);
 
-    fetchData()
-  }, [])
+  return data;
+}
 
-  if (loading) {
-    return <div className="loading">Loading dashboard...</div>
-  }
+/* ---------- main Dashboard ---------- */
+export default function Dashboard() {
+  const [loading, setLoading] = useState(true);
+
+  /* poll endpoints */
+  const projects = usePolling(
+    "http://localhost:8080/api/projects/my-projects",
+    10000
+  );
+  const tasks = usePolling(
+    "http://localhost:8080/api/my-tasks",
+    10000
+  );
+
+  /* stop spinner when first data arrives */
+  useEffect(() => {
+    if (projects || tasks) setLoading(false);
+  }, [projects, tasks]);
+
+  if (loading) return <div className="loading">Loading dashboard...</div>;
 
   return (
     <div>
@@ -58,7 +69,7 @@ const Dashboard = () => {
       </div>
 
       <div className="row">
-        {/* My Projects */}
+        {/* ---- My Projects card ---- */}
         <div className="col-md-8">
           <div className="card">
             <div className="card-header">
@@ -67,22 +78,23 @@ const Dashboard = () => {
             <div className="card-body">
               {projects.length === 0 ? (
                 <p>
-                  No projects found. <Link to="/projects/create">Create your first project</Link>
+                  No projects found.{" "}
+                  <Link to="/projects/create">Create your first project</Link>
                 </p>
               ) : (
                 <div className="list-group list-group-flush">
-                  {projects.map((project) => (
+                  {projects.map((p) => (
                     <Link
-                      key={project.id}
-                      to={`/projects/${project.id}`}
+                      key={p.id}
+                      to={`/projects/${p.id}`}
                       className="list-group-item list-group-item-action"
                     >
                       <div className="d-flex w-100 justify-content-between">
-                        <h6 className="mb-1">{project.name}</h6>
-                        <small className="text-muted">Due: {project.endDate}</small>
+                        <h6 className="mb-1">{p.name}</h6>
+                        <small className="text-muted">Due: {p.endDate}</small>
                       </div>
-                      <p className="mb-1">Status: {project.status}</p>
-                      <small>{project.tasks?.length || 0} tasks</small>
+                      <p className="mb-1">Status: {p.status}</p>
+                      <small>{p.tasks?.length || 0} tasks</small>
                     </Link>
                   ))}
                 </div>
@@ -91,8 +103,9 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* My Tasks + Stats */}
+        {/* ---- My Tasks & stats ---- */}
         <div className="col-md-4">
+          {/* tasks */}
           <div className="card">
             <div className="card-header">
               <h5>My Tasks</h5>
@@ -102,17 +115,23 @@ const Dashboard = () => {
                 <p>No tasks assigned to you.</p>
               ) : (
                 <div className="list-group list-group-flush">
-                  {tasks.map((task) => (
-                    <div key={task.id} className="list-group-item">
+                  {tasks.map((t) => (
+                    <div key={t.id} className="list-group-item">
                       <div className="d-flex w-100 justify-content-between">
-                        <h6 className="mb-1">{task.title}</h6>
-                        <small className={`priority-${(task.priority || task.urgency || "").toLowerCase()}`}>
-                          {(task.priority || task.urgency || "").toUpperCase()}
+                        <h6 className="mb-1">{t.title}</h6>
+                        <small
+                          className={`priority-${(
+                            t.priority ||
+                            t.urgency ||
+                            ""
+                          ).toLowerCase()}`}
+                        >
+                          {(t.priority || t.urgency || "").toUpperCase()}
                         </small>
                       </div>
-                      <p className="mb-1">{task.project?.name || "No Project"}</p>
+                      <p className="mb-1">{t.project?.name || "No Project"}</p>
                       <small>
-                        Due: {task.dueDate} | Status: {task.status || "To Do"}
+                        Due: {t.dueDate} | Status: {t.status || "To Do"}
                       </small>
                     </div>
                   ))}
@@ -121,7 +140,7 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Quick Stats */}
+          {/* stats */}
           <div className="card mt-3">
             <div className="card-header">
               <h5>Quick Stats</h5>
@@ -142,7 +161,5 @@ const Dashboard = () => {
         </div>
       </div>
     </div>
-  )
+  );
 }
-
-export default Dashboard
